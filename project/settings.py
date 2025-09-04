@@ -37,7 +37,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    # apps:
+    # external-apps:
+    'rest_framework',
+    'rest_framework.authentication',
+    'rest_framework.authtoken',
+    'djoser',
+    # my-apps:
     'core',
 ]
 
@@ -125,3 +130,21 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 AUTH_USER_MODEL = 'core.User'
+
+REST_FRAMEWORK = {
+    'COERCE_DECIMAL_TO_STRING': False,
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.BasicAuthentication',
+    ]
+
+}
+
+DJOSER = {
+    "SERIALIZERS": {
+        "user_create_password_retype": "core.serializers.CustomUserCreatePasswordRetypeSerializer",
+        "current_user": "core.serializers.CustomUserSerializer",
+    },
+
+    # enable confirm password
+    'USER_CREATE_PASSWORD_RETYPE': True,
+}
