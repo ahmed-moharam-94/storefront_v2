@@ -5,7 +5,7 @@ from django.conf import settings
 class Customer(models.Model):
     # assign the user to the customer
     user = models.OneToOneField(
-        settings.Auth_USER_MODEL, on_delete=models.CASCADE)
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     birth_date = models.DateField(null=True, blank=True)
     location = models.TextField()
     second_phone_number = models.CharField(unique=True, blank=True, null=True, max_length=15)

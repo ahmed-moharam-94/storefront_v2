@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'djoser',
     # my-apps:
     'core',
+    'store'
 ]
 
 MIDDLEWARE = [
