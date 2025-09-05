@@ -42,6 +42,8 @@ INSTALLED_APPS = [
     'rest_framework.authentication',
     'rest_framework.authtoken',
     'djoser',
+    'django_extensions',
+
     # my-apps:
     'core',
     'store'
@@ -135,7 +137,7 @@ AUTH_USER_MODEL = 'core.User'
 REST_FRAMEWORK = {
     'COERCE_DECIMAL_TO_STRING': False,
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.BasicAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
     ]
 
 }
@@ -144,8 +146,11 @@ DJOSER = {
     "SERIALIZERS": {
         "user_create_password_retype": "core.serializers.CustomUserCreatePasswordRetypeSerializer",
         "current_user": "core.serializers.CustomUserSerializer",
-    },
+        # reset username which is phone_number
+        "set_username": "core.serializers.CustomSetUsernameSerializer",
+        "token": "core.serializers.CustomTokenSerializer",
 
-    # enable confirm password
+    },
     'USER_CREATE_PASSWORD_RETYPE': True,
+    'LOGIN_FIELD': 'phone_number'
 }
