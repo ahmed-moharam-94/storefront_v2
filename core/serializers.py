@@ -29,7 +29,7 @@ class CustomUserCreatePasswordRetypeSerializer(UserCreatePasswordRetypeSerialize
     phone_number = serializers.CharField()
  
     def validate_phone_number(self, value):
-        check_phone_number(value)
+        return check_phone_number(value)
 
     class Meta(UserCreatePasswordRetypeSerializer.Meta):
         fields = ['id', 'token', 'phone_number', 'email', 'first_name',

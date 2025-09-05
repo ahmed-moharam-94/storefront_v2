@@ -26,6 +26,6 @@ urlpatterns = [
 
 
     # my-apps urls
-    # path('store/', include('store.urls')),
+    path('store/', include('store.urls')),
 
 ]
