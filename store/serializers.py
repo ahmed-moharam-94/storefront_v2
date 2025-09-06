@@ -9,9 +9,8 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id', 'first_name', 'last_name', 'phone_number']
 
+
 # list/detail Customer
-
-
 class CustomerSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
 
@@ -20,3 +19,7 @@ class CustomerSerializer(serializers.ModelSerializer):
         fields = ['id', 'user', 'birth_date', 'location',
                   'second_phone_number',
                   ]
+
+
+# update customer
+# class UpdateCustomerSerializer(serializers.M )
