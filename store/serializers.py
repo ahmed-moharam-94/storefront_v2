@@ -1,7 +1,8 @@
+from django.forms import ImageField
 from rest_framework import serializers
 
 from core.models import User
-from store.models import Customer
+from store.models import Customer, CustomerImage
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -11,41 +12,68 @@ class UserSerializer(serializers.ModelSerializer):
         read_only_fields = ['id']
 
 
+class CustomerImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomerImage
+        fields = ['image']
+
+    def create(self, validated_data):
+        customer_id = self.context['customer_id']
+        # update image instead of always creating a new one 
+        # because the relation is One-to-One fields
+        instance, _ = CustomerImage.objects.update_or_create(
+            customer_id=customer_id,
+            defaults=validated_data
+        )
+        return instance
+
 # list/detail Customer
 class CustomerSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
-
+    image = CustomerImageSerializer()
     class Meta:
         model = Customer
-        fields = ['id', 'user', 'birth_date', 'location',
+        fields = ['id', 'user', 'image', 'birth_date', 'location',
                   'second_phone_number',
                   ]
 
 
-# update customer
+
 class UpdateCustomerSerializer(serializers.ModelSerializer):
-    user = UserSerializer()
+    user = UserSerializer(read_only=False)
+    # to upload an image as a nested related field use serializers.ImageField()
+    image = serializers.ImageField(write_only=True)
+
+    image_url = serializers.SerializerMethodField(
+        read_only = True
+    )
+
+    def get_image_url(self, customer):
+        return CustomerImageSerializer(customer.image).data
+
     class Meta:
         model = Customer
-        fields = ['user', 'birth_date', 'second_phone_number']
-
+        fields = ['user', 'image', 'image_url', 'birth_date', 'location', 'second_phone_number']
 
     def update(self, instance, validated_data):
-        # get the user object from validated data the remove it
+        print(f'validated_data::{validated_data["image"]}')
+
+        # Extract nested fields
         user_data = validated_data.pop('user', None)
+        image_data = validated_data.pop('image', None)
 
-        # update the user
+        # Update user
         if user_data:
-            user = instance.user
-            # iterate over user_data dictionary items to update the user instance with right values
+            user_instance = instance.user
             for attr, value in user_data.items():
-                setattr(user, attr, value)
-            user.save()
+                setattr(user_instance, attr, value)
+            user_instance.save()
 
-        # update the customer profile
-        instance = super().update(instance, validated_data)
+        # Update or create customer image
+        if image_data:
+            customer_image_instance, created = CustomerImage.objects.get_or_create(customer=instance)
+            customer_image_instance.image = image_data
+            customer_image_instance.save()
 
-        return instance
-
-    
-
+        # Update customer fields
+        return super().update(instance, validated_data)
