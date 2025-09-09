@@ -1,6 +1,7 @@
+from turtle import mode
 from django.db import models
 from django.conf import settings
-
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 
 class Customer(models.Model):
@@ -9,14 +10,35 @@ class Customer(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     birth_date = models.DateField(null=True, blank=True)
     location = models.TextField(null=True, blank=True)
-    second_phone_number = models.CharField(unique=True, blank=True, null=True, max_length=15)
+    second_phone_number = models.CharField(
+        unique=True, blank=True, null=True, max_length=15)
 
     def __str__(self):
         return f'{self.user.first_name} {self.user.last_name}'
-    
+
 
 class CustomerImage(models.Model):
-    image = models.ImageField(upload_to='store/images')
-    customer = models.OneToOneField(Customer, on_delete=models.CASCADE, related_name='image')
+    image = models.ImageField(upload_to='store/images/customers')
+    customer = models.OneToOneField(
+        Customer, on_delete=models.CASCADE, related_name='image')
     
 
+
+class Category(models.Model):
+    title = models.CharField(max_length=255, null=False, blank=False)
+    
+
+class Product(models.Model):
+    title = models.CharField(max_length=255, null=False, blank=False)
+    description = models.TextField(null=False, blank=False)
+    price = models.DecimalField(max_digits=5, decimal_places=2, validators=[
+        MinValueValidator(1), MaxValueValidator(999999),
+    ],
+    )
+    inventory = models.IntegerField(validators=[MinValueValidator(0)])
+    category = models.ForeignKey(Category, on_delete=models.PROTECT)
+
+
+class ProductImage(models.Model):
+    image = models.ImageField(upload_to='store/images/products')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
