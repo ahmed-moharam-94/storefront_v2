@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 from . import models
-from .models import Customer
+from .models import Customer, Product
 
 
 @admin.register(models.Customer)
@@ -25,3 +25,8 @@ class CustomerAdmin(admin.ModelAdmin):
     list_select_related = ['user']
     ordering = ['user__first_name', 'user__last_name']
     search_fields = ['user__first_name__istartswith', 'user__last_name__istartswith']
+
+
+@admin.register(models.Product)
+class ProductAdmin(admin.ModelAdmin):
+    pass
