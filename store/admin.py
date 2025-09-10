@@ -31,6 +31,7 @@ class CustomerAdmin(admin.ModelAdmin):
 class CategoryAdmin(admin.ModelAdmin):
     # TODO: define a field that show the number of products on every category
     list_display = ["id", "title"]
+    search_fields = ['title']
 
 
 @admin.register(models.Product)
@@ -51,3 +52,6 @@ class ProductAdmin(admin.ModelAdmin):
     
     # Add/Edit Form View fields
     autocomplete_fields = ['category']
+    prepopulated_fields = {
+        'slug': ['title']
+    }
