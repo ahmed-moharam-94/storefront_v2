@@ -1,4 +1,3 @@
-from turtle import mode
 from django.db import models
 from django.conf import settings
 from django.core.validators import MinValueValidator, MaxValueValidator
@@ -31,6 +30,7 @@ class Category(models.Model):
 class Product(models.Model):
     title = models.CharField(max_length=255, null=False, blank=False)
     description = models.TextField(null=False, blank=False)
+    slug = models.SlugField()
     price = models.DecimalField(max_digits=5, decimal_places=2, validators=[
         MinValueValidator(1), MaxValueValidator(999999),
     ],
@@ -42,3 +42,6 @@ class Product(models.Model):
 class ProductImage(models.Model):
     image = models.ImageField(upload_to='store/images/products')
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    
+
+
