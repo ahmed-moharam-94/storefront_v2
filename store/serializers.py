@@ -68,6 +68,8 @@ class UpdateCustomerSerializer(serializers.ModelSerializer):
         model = Customer
         fields = ['user', 'image', 'image_file', 'birth_date', 'location', 'second_phone_number']
 
+    
+
     def update(self, instance, validated_data):
         print(f'validated_data::{validated_data["image_file"]}')
 
