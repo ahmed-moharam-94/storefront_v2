@@ -89,6 +89,5 @@ class UpdateCustomerSerializer(serializers.ModelSerializer):
             customer_image_instance, created = CustomerImage.objects.get_or_create(customer=instance)
             customer_image_instance.image = image_data
             customer_image_instance.save()
-
-        # Update customer fields
+    
         return super().update(instance, validated_data)
