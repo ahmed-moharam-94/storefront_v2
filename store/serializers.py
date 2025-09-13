@@ -143,3 +143,12 @@ class ProductSerializer(serializers.ModelSerializer):
             ProductImage.objects.create(product=created_product, image=image)
 
         return created_product
+    
+    def update(self, instance, validated_data):
+        images = validated_data.pop('image_file', [])
+        for image in images:
+            instance.images.all().delete()
+            ProductImage.objects.create(product=instance, image=image)
+
+        return super().update(instance, validated_data)
+  
