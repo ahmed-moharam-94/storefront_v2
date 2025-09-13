@@ -1,7 +1,8 @@
 from django.contrib import admin
+from django.utils.html import format_html
 
 from . import models
-from .models import Customer, Product
+from .models import Customer, Product, ProductImage
 
 
 @admin.register(models.Customer)
@@ -34,6 +35,21 @@ class CategoryAdmin(admin.ModelAdmin):
     search_fields = ['title']
 
 
+class ProductImageInline(admin.TabularInline):
+    model = ProductImage
+    fields = ['image', 'thumbnail']
+    readonly_fields = ['thumbnail']
+    extra = 1
+
+    def thumbnail(self, obj):
+        if obj.image:
+            return format_html('<img src="{}" width="100" height="100" style="object-fit: cover;" />', obj.image.url)
+        return ""
+    thumbnail.short_description = "thumbnail"
+
+    
+
+
 @admin.register(models.Product)
 class ProductAdmin(admin.ModelAdmin):
     
@@ -55,3 +71,4 @@ class ProductAdmin(admin.ModelAdmin):
     prepopulated_fields = {
         'slug': ['title']
     }
+    inlines = [ProductImageInline]
