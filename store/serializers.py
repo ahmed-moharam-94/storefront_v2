@@ -3,7 +3,7 @@ from django.forms import ImageField
 from rest_framework import serializers
 
 from core.models import User
-from store.models import Customer, CustomerImage, Product
+from store.models import Customer, CustomerImage, Product, ProductImage
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -20,7 +20,7 @@ class CustomerImageSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         customer_id = self.context['customer_id']
-        # update image instead of always creating a new one 
+        # update image instead of always creating a new one
         # because the relation is One-to-One fields
         instance, _ = CustomerImage.objects.update_or_create(
             customer_id=customer_id,
@@ -29,24 +29,26 @@ class CustomerImageSerializer(serializers.ModelSerializer):
         return instance
 
 # list/detail Customer
+
+
 class CustomerSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     image = serializers.SerializerMethodField(
-        read_only = True
+        read_only=True
     )
 
     def get_image(self, customer):
-        request = self.context.get('request')  # DRF automatically passes this
+        request = self.context.get('request')
         if hasattr(customer, 'image') and customer.image:
             url = customer.image.image.url
             return request.build_absolute_uri(url) if request else url
         return None
+
     class Meta:
         model = Customer
         fields = ['id', 'user', 'image', 'birth_date', 'location',
                   'second_phone_number',
                   ]
-
 
 
 class UpdateCustomerSerializer(serializers.ModelSerializer):
@@ -55,7 +57,7 @@ class UpdateCustomerSerializer(serializers.ModelSerializer):
     image_file = serializers.ImageField(write_only=True)
 
     image = serializers.SerializerMethodField(
-        read_only = True
+        read_only=True
     )
 
     def get_image(self, customer):
@@ -67,9 +69,8 @@ class UpdateCustomerSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Customer
-        fields = ['user', 'image', 'image_file', 'birth_date', 'location', 'second_phone_number']
-
-    
+        fields = ['user', 'image', 'image_file',
+                  'birth_date', 'location', 'second_phone_number']
 
     def update(self, instance, validated_data):
         print(f'validated_data::{validated_data["image_file"]}')
@@ -87,14 +88,38 @@ class UpdateCustomerSerializer(serializers.ModelSerializer):
 
         # Update or create customer image
         if image_data:
-            customer_image_instance, created = CustomerImage.objects.get_or_create(customer=instance)
+            customer_image_instance, created = CustomerImage.objects.get_or_create(
+                customer=instance)
             customer_image_instance.image = image_data
             customer_image_instance.save()
-    
+
         return super().update(instance, validated_data)
 
 
+class ProductImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductImage
+        fields = ['image']
+
+
 class ProductSerializer(serializers.ModelSerializer):
+    # show images in Response
+    images = serializers.SerializerMethodField(
+        read_only=True,
+    )
+
+    image_file = serializers.ListField(
+        child=serializers.ImageField(),
+        write_only=True,
+    )
+
+    def get_images(self, product: Product):
+        request = self.context['request']
+        return [request.build_absolute_uri(img.image.url) for img in product.images.all()]
+
+    def get_image_file(self, product: Product):
+        return ProductImageSerializer(product.images, many=True).data
+
     class Meta:
         model = Product
         fields = [
@@ -105,4 +130,16 @@ class ProductSerializer(serializers.ModelSerializer):
             'price',
             'inventory',
             'images',
+            'image_file',
         ]
+
+    def create(self, validated_data):
+        images = validated_data.pop('image_file', [])
+        # create the product
+        created_product = Product.objects.create(**validated_data)
+
+        # create the product_image instance
+        for image in images:
+            ProductImage.objects.create(product=created_product, image=image)
+
+        return created_product
