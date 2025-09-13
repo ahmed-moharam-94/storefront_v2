@@ -1,8 +1,9 @@
+from dataclasses import field
 from django.forms import ImageField
 from rest_framework import serializers
 
 from core.models import User
-from store.models import Customer, CustomerImage
+from store.models import Customer, CustomerImage, Product
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -91,3 +92,17 @@ class UpdateCustomerSerializer(serializers.ModelSerializer):
             customer_image_instance.save()
     
         return super().update(instance, validated_data)
+
+
+class ProductSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Product
+        fields = [
+            'id',
+            'category',
+            'title',
+            'description',
+            'price',
+            'inventory',
+            'images',
+        ]

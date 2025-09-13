@@ -1,9 +1,9 @@
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 
-from .models import Customer, CustomerImage
+from .models import Customer, CustomerImage, Product
 from .permissions import IsOwnerOrAdmin
-from .serializers import CustomerImageSerializer, CustomerSerializer, UpdateCustomerSerializer
+from .serializers import CustomerImageSerializer, CustomerSerializer, ProductSerializer, UpdateCustomerSerializer
 
 
 class CustomerViewSet(ModelViewSet):
@@ -35,4 +35,9 @@ class CustomerImageViewSet(ModelViewSet):
     
     def get_queryset(self):
         return CustomerImage.objects.filter(customer_id=self.kwargs['customer_pk'])
+    
+
+class ProductViewSet(ModelViewSet):
+    serializer_class = ProductSerializer
+    queryset = Product.objects.prefetch_related('images').all()
 
