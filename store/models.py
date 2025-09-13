@@ -49,3 +49,9 @@ class ProductImage(models.Model):
     
 
 
+#TODO: 
+# 1) Implement Order, OrderItem models
+# 2) Implement Cart, CartItem models
+# 3) Implement Like as a content_type
+# 4) Implement Reviews
+# 5) Add ordering to Products, Customer models
