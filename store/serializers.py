@@ -3,7 +3,7 @@ from django.forms import ImageField
 from rest_framework import serializers
 
 from core.models import User
-from store.models import Customer, CustomerImage, Product, ProductImage
+from store.models import Category, Customer, CustomerImage, Product, ProductImage
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -94,6 +94,12 @@ class UpdateCustomerSerializer(serializers.ModelSerializer):
             customer_image_instance.save()
 
         return super().update(instance, validated_data)
+    
+
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ['id', 'title']
 
 
 class ProductImageSerializer(serializers.ModelSerializer):
@@ -103,7 +109,8 @@ class ProductImageSerializer(serializers.ModelSerializer):
 
 
 class ProductSerializer(serializers.ModelSerializer):
-    # show images in Response
+    category = CategorySerializer(read_only=True)
+
     images = serializers.SerializerMethodField(
         read_only=True,
     )
@@ -112,6 +119,7 @@ class ProductSerializer(serializers.ModelSerializer):
         child=serializers.ImageField(),
         write_only=True,
     )
+
 
     def get_images(self, product: Product):
         request = self.context['request']

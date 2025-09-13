@@ -1,15 +1,13 @@
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
-
-
+from rest_framework.filters import SearchFilter, OrderingFilter
 from core.views import Response
-from store.filters import ProductFilter
-
 from .models import Customer, CustomerImage, Product, ProductImage
 from .permissions import IsOwnerOrAdmin
 from .serializers import CustomerImageSerializer, CustomerSerializer, ProductImageSerializer, ProductSerializer, UpdateCustomerSerializer
 from .pagination import CustomPagination
+from .filters import ProductFilter
 
 
 class CustomerViewSet(ModelViewSet):
@@ -45,10 +43,14 @@ class CustomerImageViewSet(ModelViewSet):
 
 class ProductViewSet(ModelViewSet):
     serializer_class = ProductSerializer
-    queryset = Product.objects.prefetch_related('images').all()
+    queryset = Product.objects.prefetch_related('images').select_related('category').all()
     pagination_class = CustomPagination
-    filter_backends = [DjangoFilterBackend]
+    # define ways to shortlist queryset: Filter, Search
+    # or ordering: sort
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = ProductFilter
+    search_fields = ['title', 'description', 'category__title']
+    ordering_fields = ['title', 'price']
 
     def get_permissions(self):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
@@ -58,8 +60,6 @@ class ProductViewSet(ModelViewSet):
 
 class ProductImageViewSet(ModelViewSet):
     serializer_class = ProductImageSerializer
-
-
     
     def get_permissions(self):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
