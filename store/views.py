@@ -1,30 +1,37 @@
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.viewsets import ModelViewSet
+from rest_framework import permissions
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.filters import SearchFilter, OrderingFilter
 from core.views import Response
-from .models import Customer, CustomerImage, Product, ProductImage
+from .models import Customer, CustomerImage, Product, ProductImage, Review
 from .permissions import IsOwnerOrAdmin
-from .serializers import CustomerImageSerializer, CustomerSerializer, ProductImageSerializer, ProductSerializer, UpdateCustomerSerializer
+from .serializers import (
+    CustomerImageSerializer,
+    CustomerSerializer,
+    ProductImageSerializer,
+    ProductSerializer,
+    ReviewSerializer,
+    UpdateCustomerSerializer,
+)
 from .pagination import CustomPagination
 from .filters import ProductFilter
 
 
 class CustomerViewSet(ModelViewSet):
-    queryset = Customer.objects.select_related(
-        'user').prefetch_related('image').all()
+    queryset = Customer.objects.select_related("user").prefetch_related("image").all()
     serializer_class = CustomerSerializer
     permission_classes = [IsAuthenticated]
 
     def get_serializer_class(self):
-        if self.action in ['update', 'partial_update']:
+        if self.action in ["update", "partial_update"]:
             return UpdateCustomerSerializer
         return self.serializer_class
 
     def get_permissions(self):
-        if self.action == 'list':
+        if self.action == "list":
             return [IsAuthenticated(), IsAdminUser()]
-        elif self.action in ['retrieve', 'update', 'partial_update', 'destroy']:
+        elif self.action in ["retrieve", "update", "partial_update", "destroy"]:
             return [IsAuthenticated(), IsOwnerOrAdmin()]
 
         return [IsAuthenticated()]
@@ -35,41 +42,68 @@ class CustomerImageViewSet(ModelViewSet):
 
     # send the customer_id to serializer
     def get_serializer_context(self):
-        return {'customer_id': self.kwargs['customer_pk']}
+        return {"customer_id": self.kwargs["customer_pk"]}
 
     def get_queryset(self):
-        return CustomerImage.objects.filter(customer_id=self.kwargs['customer_pk'])
+        return CustomerImage.objects.filter(customer_id=self.kwargs["customer_pk"])
 
 
 class ProductViewSet(ModelViewSet):
     serializer_class = ProductSerializer
-    queryset = Product.objects.prefetch_related('images').select_related('category').all()
+    queryset = (
+        Product.objects.prefetch_related("images").select_related("category").all()
+    )
     pagination_class = CustomPagination
     # define ways to shortlist queryset: Filter, Search
     # or ordering: sort
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = ProductFilter
-    search_fields = ['title', 'description', 'category__title']
-    ordering_fields = ['title', 'price']
+    search_fields = ["title", "description", "category__title"]
+    ordering_fields = ["title", "price"]
 
     def get_permissions(self):
-        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+        if self.action in ["create", "update", "partial_update", "destroy"]:
             return [IsAdminUser()]
         return []
 
 
 class ProductImageViewSet(ModelViewSet):
     serializer_class = ProductImageSerializer
-    
+
     def get_permissions(self):
-        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+        if self.action in ["create", "update", "partial_update", "destroy"]:
             return [IsAdminUser()]
-        return []
+        return [permissions.AllowAny()]
 
     def get_queryset(self):
-        return ProductImage.objects.filter(product_id=self.kwargs['product_pk'])
+        return ProductImage.objects.filter(product_id=self.kwargs["product_pk"])
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
         serializer = self.get_serializer(queryset, many=True)
         return Response({"images": serializer.data})
+
+
+class ReviewViewSet(ModelViewSet):
+    serializer_class = ReviewSerializer
+    
+    
+    def get_serializer_context(self):
+        return {'request': self.request, 'product_id': self.kwargs['product_pk']}
+    
+    def get_permissions(self):
+        if self.action in ['update', 'partial_update', 'destroy']:
+            # only allow Owner & Admin of the review to update or delete
+            return [IsOwnerOrAdmin()]
+        elif self.action == 'create':
+            return [IsAuthenticated()]
+        else: 
+            return [permissions.AllowAny()]
+    
+    def get_queryset(self):
+        product_id = self.kwargs["product_pk"]
+        user_id = self.request.user.id
+        return (
+            Review.objects.select_related("product", 'customer')
+            .filter(product_id=product_id, customer__user_id=user_id)
+        )

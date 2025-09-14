@@ -53,6 +53,10 @@ class Product(models.Model):
     category = models.ForeignKey(Category, on_delete=models.PROTECT)
     created_at = models.DateTimeField(auto_now_add=True)  
     last_update = models.DateTimeField(auto_now=True)
+    
+    
+    def __str__(self):
+        return self.title
 
 
 class ProductImage(models.Model):

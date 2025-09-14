@@ -3,52 +3,62 @@ from django.forms import ImageField
 from rest_framework import serializers
 
 from core.models import User
-from store.models import Category, Customer, CustomerImage, Product, ProductImage
+from store.models import (
+    Category,
+    Customer,
+    CustomerImage,
+    Product,
+    ProductImage,
+    Review,
+)
 
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'first_name', 'last_name', 'phone_number']
-        read_only_fields = ['id']
+        fields = ["id", "first_name", "last_name", "phone_number"]
+        read_only_fields = ["id"]
 
 
 class CustomerImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomerImage
-        fields = ['image']
+        fields = ["image"]
 
     def create(self, validated_data):
-        customer_id = self.context['customer_id']
+        customer_id = self.context["customer_id"]
         # update image instead of always creating a new one
         # because the relation is One-to-One fields
         instance, _ = CustomerImage.objects.update_or_create(
-            customer_id=customer_id,
-            defaults=validated_data
+            customer_id=customer_id, defaults=validated_data
         )
         return instance
+
 
 # list/detail Customer
 
 
 class CustomerSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
-    image = serializers.SerializerMethodField(
-        read_only=True
-    )
+    image = serializers.SerializerMethodField(read_only=True)
 
     def get_image(self, customer):
-        request = self.context.get('request')
-        if hasattr(customer, 'image') and customer.image:
+        request = self.context.get("request")
+        if hasattr(customer, "image") and customer.image:
             url = customer.image.image.url
             return request.build_absolute_uri(url) if request else url
         return None
 
     class Meta:
         model = Customer
-        fields = ['id', 'user', 'image', 'birth_date', 'location',
-                  'second_phone_number',
-                  ]
+        fields = [
+            "id",
+            "user",
+            "image",
+            "birth_date",
+            "location",
+            "second_phone_number",
+        ]
 
 
 class UpdateCustomerSerializer(serializers.ModelSerializer):
@@ -56,28 +66,32 @@ class UpdateCustomerSerializer(serializers.ModelSerializer):
     # to upload an image as a nested related field use serializers.ImageField()
     image_file = serializers.ImageField(write_only=True)
 
-    image = serializers.SerializerMethodField(
-        read_only=True
-    )
+    image = serializers.SerializerMethodField(read_only=True)
 
     def get_image(self, customer):
-        request = self.context.get('request')  # DRF automatically passes this
-        if hasattr(customer, 'image') and customer.image:
+        request = self.context.get("request")  # DRF automatically passes this
+        if hasattr(customer, "image") and customer.image:
             url = customer.image.image.url
             return request.build_absolute_uri(url) if request else url
         return None
 
     class Meta:
         model = Customer
-        fields = ['user', 'image', 'image_file',
-                  'birth_date', 'location', 'second_phone_number']
+        fields = [
+            "user",
+            "image",
+            "image_file",
+            "birth_date",
+            "location",
+            "second_phone_number",
+        ]
 
     def update(self, instance, validated_data):
         print(f'validated_data::{validated_data["image_file"]}')
 
         # Extract nested fields
-        user_data = validated_data.pop('user', None)
-        image_data = validated_data.pop('image_file', None)
+        user_data = validated_data.pop("user", None)
+        image_data = validated_data.pop("image_file", None)
 
         # Update user
         if user_data:
@@ -89,23 +103,24 @@ class UpdateCustomerSerializer(serializers.ModelSerializer):
         # Update or create customer image
         if image_data:
             customer_image_instance, created = CustomerImage.objects.get_or_create(
-                customer=instance)
+                customer=instance
+            )
             customer_image_instance.image = image_data
             customer_image_instance.save()
 
         return super().update(instance, validated_data)
-    
+
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
-        fields = ['id', 'title']
+        fields = ["id", "title"]
 
 
 class ProductImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductImage
-        fields = ['image']
+        fields = ["image"]
 
 
 class ProductSerializer(serializers.ModelSerializer):
@@ -120,10 +135,11 @@ class ProductSerializer(serializers.ModelSerializer):
         write_only=True,
     )
 
-
     def get_images(self, product: Product):
-        request = self.context['request']
-        return [request.build_absolute_uri(img.image.url) for img in product.images.all()]
+        request = self.context["request"]
+        return [
+            request.build_absolute_uri(img.image.url) for img in product.images.all()
+        ]
 
     def get_image_file(self, product: Product):
         return ProductImageSerializer(product.images, many=True).data
@@ -131,18 +147,18 @@ class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = [
-            'id',
-            'category',
-            'title',
-            'description',
-            'price',
-            'inventory',
-            'images',
-            'image_file',
+            "id",
+            "category",
+            "title",
+            "description",
+            "price",
+            "inventory",
+            "images",
+            "image_file",
         ]
 
     def create(self, validated_data):
-        images = validated_data.pop('image_file', [])
+        images = validated_data.pop("image_file", [])
         # create the product
         created_product = Product.objects.create(**validated_data)
 
@@ -151,12 +167,42 @@ class ProductSerializer(serializers.ModelSerializer):
             ProductImage.objects.create(product=created_product, image=image)
 
         return created_product
-    
+
     def update(self, instance, validated_data):
-        images = validated_data.pop('image_file', [])
+        images = validated_data.pop("image_file", [])
         for image in images:
             instance.images.all().delete()
             ProductImage.objects.create(product=instance, image=image)
 
         return super().update(instance, validated_data)
-  
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+    customer = CustomerSerializer(read_only=True)
+    product = ProductSerializer(read_only=True)
+    class Meta:
+        model = Review
+        fields = ["rate", "description", "product", "customer"]
+
+    def create(self, validated_data):
+        product_id = self.context["product_id"]
+        product = Product.objects.get(pk=product_id)
+        customer = Customer.objects.get(user_id=self.context["request"].user.id)
+
+        # check if review already exists
+        review = Review.objects.filter(customer=customer, product=product).first()
+
+        if review:
+            # update the rate & description
+            review.rate = validated_data["rate"]
+            review.description = validated_data.get("description", review.description)
+            review.save()
+            return review
+        else:
+            # create new review
+            return Review.objects.create(
+                customer=customer,
+                product=product,
+                rate=validated_data["rate"],
+                description=validated_data.get("description", ""),
+            )
