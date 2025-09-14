@@ -72,3 +72,8 @@ class ProductAdmin(admin.ModelAdmin):
         'slug': ['title']
     }
     inlines = [ProductImageInline]
+    
+ 
+@admin.register(models.Review)    
+class ReviewAdmin(admin.ModelAdmin):
+    autocomplete_fields = ['customer', 'product']

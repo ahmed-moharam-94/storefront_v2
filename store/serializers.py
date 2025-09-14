@@ -1,8 +1,10 @@
 from dataclasses import field
 from django.forms import ImageField
+from django.contrib.contenttypes.models import ContentType
 from rest_framework import serializers
 
 from core.models import User
+from favorite.models import FavoriteItem
 from store.models import (
     Category,
     Customer,
@@ -206,3 +208,23 @@ class ReviewSerializer(serializers.ModelSerializer):
                 rate=validated_data["rate"],
                 description=validated_data.get("description", ""),
             )
+
+
+class ToggleFavoriteProductSerializer(serializers.Serializer):
+    product_id = serializers.PositiveIntegerField(write_only=True)
+    
+    def create(self, validated_data):
+        user = self.context['request'].user
+        product_id = validated_data['product_id']
+        
+        # check if the user has favorite the product before then delete the FavoriteItem
+        product_content_type = ContentType.objects.get_for_model(Product)
+        favorite_item = FavoriteItem.objects.filter(content_type=product_content_type, object_id=product_id, user_id=user.id).first()
+        
+        if favorite_item:
+            favorite_item.delete()
+            return None
+        else:    
+            favorite_item = FavoriteItem.objects.create(user=user, content_type=product_content_type, object_id=product_id)
+            
+            return favorite_item

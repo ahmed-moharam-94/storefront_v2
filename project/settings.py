@@ -47,10 +47,10 @@ INSTALLED_APPS = [
     'django_extensions',
     'django_filters',
 
-
     # my-apps:
     'core',
-    'store'
+    'store',
+    'favorite',
 ]
 
 MIDDLEWARE = [
