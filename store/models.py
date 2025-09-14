@@ -14,6 +14,10 @@ class Customer(models.Model):
 
     def __str__(self):
         return f'{self.user.first_name} {self.user.last_name}'
+    
+    
+    class Meta:
+        ordering = ['user__first_name', 'user__last_name']
 
 
 class CustomerImage(models.Model):
@@ -25,9 +29,15 @@ class CustomerImage(models.Model):
 
 class Category(models.Model):
     title = models.CharField(max_length=255, null=False, blank=False)
+    created_at = models.DateTimeField(auto_now_add=True)  
+
 
     def __str__(self):
         return self.title
+    
+    
+    class Meta:
+        ordering = ['title']
     
     
 
@@ -41,6 +51,8 @@ class Product(models.Model):
     )
     inventory = models.IntegerField(validators=[MinValueValidator(0)])
     category = models.ForeignKey(Category, on_delete=models.PROTECT)
+    created_at = models.DateTimeField(auto_now_add=True)  
+    last_update = models.DateTimeField(auto_now=True)
 
 
 class ProductImage(models.Model):
@@ -54,4 +66,3 @@ class ProductImage(models.Model):
 # 2) Implement Cart, CartItem models
 # 3) Implement Like as a content_type
 # 4) Implement Reviews
-# 5) Add ordering to Products, Customer models
