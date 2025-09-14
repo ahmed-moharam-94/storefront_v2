@@ -10,6 +10,8 @@ from store import views
 router = DefaultRouter()
 router.register("customers", views.CustomerViewSet, basename="customers")
 router.register("products", views.ProductViewSet, basename="products")
+router.register('favorites', views.CustomerFavoriteViewSet, basename='favorites')
+
 
 # Nested Routers #
 # define the custom router with (router, parent-prefix, lookup(/{customer_pk}))

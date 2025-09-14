@@ -1,6 +1,7 @@
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.decorators import action, permission_classes
-from rest_framework.viewsets import ModelViewSet
+from rest_framework.views import APIView
+from rest_framework.viewsets import ModelViewSet, ViewSet
 from rest_framework import permissions
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.filters import SearchFilter, OrderingFilter
@@ -8,6 +9,7 @@ from core.views import Response
 from .models import Customer, CustomerImage, Product, ProductImage, Review
 from .permissions import IsOwnerOrAdmin
 from .serializers import (
+    CustomerFavoriteProductSerializer,
     CustomerImageSerializer,
     CustomerSerializer,
     ProductImageSerializer,
@@ -38,6 +40,8 @@ class CustomerViewSet(ModelViewSet):
             return [IsAuthenticated(), IsOwnerOrAdmin()]
 
         return [IsAuthenticated()]
+    
+
 
 
 class CustomerImageViewSet(ModelViewSet):
@@ -127,3 +131,12 @@ class ReviewViewSet(ModelViewSet):
             Review.objects.select_related("product", 'customer')
             .filter(product_id=product_id, customer__user_id=user_id)
         )
+    
+
+class CustomerFavoriteViewSet(ViewSet):
+    permission_classes = [IsAuthenticated]
+    def list(self, request):
+        customer = Customer.objects.get(user_id=self.request.user)
+        serializer = CustomerFavoriteProductSerializer(customer, context={'request': request})
+        return Response(serializer.data)
+       

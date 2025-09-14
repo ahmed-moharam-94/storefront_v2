@@ -172,8 +172,9 @@ class ProductSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         images = validated_data.pop("image_file", [])
+        instance.images.all().delete()
+
         for image in images:
-            instance.images.all().delete()
             ProductImage.objects.create(product=instance, image=image)
 
         return super().update(instance, validated_data)
@@ -238,3 +239,26 @@ class ToggleFavoriteProductSerializer(serializers.Serializer):
                 user=user, content_type=product_content_type, object_id=product_id)
 
             return favorite_item
+
+
+class FavoriteProductSerializer(serializers.ModelSerializer):
+    product = ProductSerializer(source='content_object', read_only=True)
+
+    class Meta:
+        model = FavoriteItem
+        fields = ['product']
+
+
+class CustomerFavoriteProductSerializer(serializers.ModelSerializer):
+    favorites = serializers.SerializerMethodField()
+
+    def get_favorites(self, customer: Customer):
+        content_type = ContentType.objects.get_for_model(Product)
+        print(f'user_id:: {customer.user.id}')
+        favorite_item = FavoriteItem.objects.select_related('content_type').filter(
+            content_type=content_type, user_id=customer.user.id)
+        return FavoriteProductSerializer(favorite_item, context=self.context, many=True).data
+
+    class Meta:
+        model = Customer
+        fields = ['favorites']
