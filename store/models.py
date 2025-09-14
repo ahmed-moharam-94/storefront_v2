@@ -59,10 +59,31 @@ class ProductImage(models.Model):
     image = models.ImageField(upload_to='store/images/products')
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')
     
+    
+    
+class Review(models.Model):
+    rate = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
+    description = models.TextField(null=True)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_update = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return self.rate
+    
+    
+    class Meta:
+        # only one review for a customer on the same product
+        unique_together = [
+            'customer', 'product'
+        ]
+    
+    
+    
 
 
 #TODO: 
 # 1) Implement Order, OrderItem models
 # 2) Implement Cart, CartItem models
 # 3) Implement Like as a content_type
-# 4) Implement Reviews
