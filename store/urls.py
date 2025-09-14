@@ -31,7 +31,6 @@ products_nested_router.register(
 )
 products_nested_router.register('reviews', views.ReviewViewSet, basename='product-review')
 
-
 urlpatterns = [
     path("", include(router.urls)),
     path("", include(customers_nested_router.urls)),

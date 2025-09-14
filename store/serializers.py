@@ -182,6 +182,7 @@ class ProductSerializer(serializers.ModelSerializer):
 class ReviewSerializer(serializers.ModelSerializer):
     customer = CustomerSerializer(read_only=True)
     product = ProductSerializer(read_only=True)
+
     class Meta:
         model = Review
         fields = ["rate", "description", "product", "customer"]
@@ -189,15 +190,18 @@ class ReviewSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         product_id = self.context["product_id"]
         product = Product.objects.get(pk=product_id)
-        customer = Customer.objects.get(user_id=self.context["request"].user.id)
+        customer = Customer.objects.get(
+            user_id=self.context["request"].user.id)
 
         # check if review already exists
-        review = Review.objects.filter(customer=customer, product=product).first()
+        review = Review.objects.filter(
+            customer=customer, product=product).first()
 
         if review:
             # update the rate & description
             review.rate = validated_data["rate"]
-            review.description = validated_data.get("description", review.description)
+            review.description = validated_data.get(
+                "description", review.description)
             review.save()
             return review
         else:
@@ -211,20 +215,26 @@ class ReviewSerializer(serializers.ModelSerializer):
 
 
 class ToggleFavoriteProductSerializer(serializers.Serializer):
-    product_id = serializers.PositiveIntegerField(write_only=True)
-    
-    def create(self, validated_data):
+    # get the product_id from context because we already got it from url path
+    # product_id = serializers.PrimaryKeyRelatedField(
+    #     queryset=Product.objects.all(),
+    #     write_only=True,
+    #     )
+
+    def save(self, **kwargs):
         user = self.context['request'].user
-        product_id = validated_data['product_id']
-        
+        product_id = self.context['product'].id
+
         # check if the user has favorite the product before then delete the FavoriteItem
         product_content_type = ContentType.objects.get_for_model(Product)
-        favorite_item = FavoriteItem.objects.filter(content_type=product_content_type, object_id=product_id, user_id=user.id).first()
-        
+        favorite_item = FavoriteItem.objects.filter(
+            content_type=product_content_type, object_id=product_id, user_id=user.id).first()
+
         if favorite_item:
             favorite_item.delete()
             return None
-        else:    
-            favorite_item = FavoriteItem.objects.create(user=user, content_type=product_content_type, object_id=product_id)
-            
+        else:
+            favorite_item = FavoriteItem.objects.create(
+                user=user, content_type=product_content_type, object_id=product_id)
+
             return favorite_item

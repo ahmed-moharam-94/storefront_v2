@@ -1,4 +1,5 @@
 from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.decorators import action, permission_classes
 from rest_framework.viewsets import ModelViewSet
 from rest_framework import permissions
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
@@ -12,6 +13,7 @@ from .serializers import (
     ProductImageSerializer,
     ProductSerializer,
     ReviewSerializer,
+    ToggleFavoriteProductSerializer,
     UpdateCustomerSerializer,
 )
 from .pagination import CustomPagination
@@ -19,7 +21,8 @@ from .filters import ProductFilter
 
 
 class CustomerViewSet(ModelViewSet):
-    queryset = Customer.objects.select_related("user").prefetch_related("image").all()
+    queryset = Customer.objects.select_related(
+        "user").prefetch_related("image").all()
     serializer_class = CustomerSerializer
     permission_classes = [IsAuthenticated]
 
@@ -51,7 +54,8 @@ class CustomerImageViewSet(ModelViewSet):
 class ProductViewSet(ModelViewSet):
     serializer_class = ProductSerializer
     queryset = (
-        Product.objects.prefetch_related("images").select_related("category").all()
+        Product.objects.prefetch_related(
+            "images").select_related("category").all()
     )
     pagination_class = CustomPagination
     # define ways to shortlist queryset: Filter, Search
@@ -64,7 +68,23 @@ class ProductViewSet(ModelViewSet):
     def get_permissions(self):
         if self.action in ["create", "update", "partial_update", "destroy"]:
             return [IsAdminUser()]
-        return []
+        elif self.action == 'favorite':
+            return [IsAuthenticated()]
+        return [permissions.AllowAny()]
+    
+    # set detail=True because it will get the product_id /products/{pk}/favorite
+    @action(detail=True, methods=['post'], serializer_class=ToggleFavoriteProductSerializer)
+    def favorite(self, request, *args, **kwargs):
+        print(self.request.user, self.request.user.is_authenticated)
+        product = self.get_object()
+        serializer = self.get_serializer(context={'request': request, 'product': product})
+        favorite_item = serializer.save()  # no .is_valid() needed, no input fields
+
+        message = (
+            f"Removed '{product.title}' from favorites."
+            if favorite_item is None else f"Added '{product.title}' to favorites."
+        )
+        return Response({"message": message})
 
 
 class ProductImageViewSet(ModelViewSet):
@@ -84,22 +104,22 @@ class ProductImageViewSet(ModelViewSet):
         return Response({"images": serializer.data})
 
 
+
 class ReviewViewSet(ModelViewSet):
     serializer_class = ReviewSerializer
-    
-    
+
     def get_serializer_context(self):
         return {'request': self.request, 'product_id': self.kwargs['product_pk']}
-    
+
     def get_permissions(self):
         if self.action in ['update', 'partial_update', 'destroy']:
             # only allow Owner & Admin of the review to update or delete
             return [IsOwnerOrAdmin()]
         elif self.action == 'create':
             return [IsAuthenticated()]
-        else: 
+        else:
             return [permissions.AllowAny()]
-    
+
     def get_queryset(self):
         product_id = self.kwargs["product_pk"]
         user_id = self.request.user.id

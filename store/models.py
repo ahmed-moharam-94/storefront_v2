@@ -74,7 +74,6 @@ class Review(models.Model):
     last_update = models.DateTimeField(auto_now=True)
     
     def __str__(self):
-        user = self.customer.user
         return f'{self.description} rate: {self.rate}'
     
     
