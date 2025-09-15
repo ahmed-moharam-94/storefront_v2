@@ -323,3 +323,16 @@ class CartItemSerializer(serializers.ModelSerializer):
             cart_item = CartItem.objects.create(cart=cart, **validated_data)
         return cart_item
 
+
+class CartSerializer(serializers.ModelSerializer):
+    items = CartItemSerializer(many=True, read_only=True)
+    total_price = serializers.SerializerMethodField(
+        read_only=True
+    )
+    
+    # def get_total_price(self, cart: Cart):
+    #     return (item for item in cart.cart_items)
+    class Meta:
+        model = Cart
+        fields = ['id', 'items', 'total_price']
+        read_only_fields = ['id', 'items', 'total_price']
