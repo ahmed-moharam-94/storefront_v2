@@ -6,6 +6,8 @@ from rest_framework import serializers
 from core.models import User
 from favorite.models import FavoriteItem
 from store.models import (
+    Cart,
+    CartItem,
     Category,
     Customer,
     CustomerImage,
@@ -191,18 +193,15 @@ class ReviewSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         product_id = self.context["product_id"]
         product = Product.objects.get(pk=product_id)
-        customer = Customer.objects.get(
-            user_id=self.context["request"].user.id)
+        customer = Customer.objects.get(user_id=self.context["request"].user.id)
 
         # check if review already exists
-        review = Review.objects.filter(
-            customer=customer, product=product).first()
+        review = Review.objects.filter(customer=customer, product=product).first()
 
         if review:
             # update the rate & description
             review.rate = validated_data["rate"]
-            review.description = validated_data.get(
-                "description", review.description)
+            review.description = validated_data.get("description", review.description)
             review.save()
             return review
         else:
@@ -223,30 +222,32 @@ class ToggleFavoriteProductSerializer(serializers.Serializer):
     #     )
 
     def save(self, **kwargs):
-        user = self.context['request'].user
-        product_id = self.context['product'].id
+        user = self.context["request"].user
+        product_id = self.context["product"].id
 
         # check if the user has favorite the product before then delete the FavoriteItem
         product_content_type = ContentType.objects.get_for_model(Product)
         favorite_item = FavoriteItem.objects.filter(
-            content_type=product_content_type, object_id=product_id, user_id=user.id).first()
+            content_type=product_content_type, object_id=product_id, user_id=user.id
+        ).first()
 
         if favorite_item:
             favorite_item.delete()
             return None
         else:
             favorite_item = FavoriteItem.objects.create(
-                user=user, content_type=product_content_type, object_id=product_id)
+                user=user, content_type=product_content_type, object_id=product_id
+            )
 
             return favorite_item
 
 
 class FavoriteProductSerializer(serializers.ModelSerializer):
-    product = ProductSerializer(source='content_object', read_only=True)
+    product = ProductSerializer(source="content_object", read_only=True)
 
     class Meta:
         model = FavoriteItem
-        fields = ['product']
+        fields = ["product"]
 
 
 class CustomerFavoriteProductSerializer(serializers.ModelSerializer):
@@ -254,11 +255,29 @@ class CustomerFavoriteProductSerializer(serializers.ModelSerializer):
 
     def get_favorites(self, customer: Customer):
         content_type = ContentType.objects.get_for_model(Product)
-        print(f'user_id:: {customer.user.id}')
-        favorite_item = FavoriteItem.objects.select_related('content_type').filter(
-            content_type=content_type, user_id=customer.user.id)
-        return FavoriteProductSerializer(favorite_item, context=self.context, many=True).data
+        print(f"user_id:: {customer.user.id}")
+        favorite_item = FavoriteItem.objects.select_related("content_type").filter(
+            content_type=content_type, user_id=customer.user.id
+        )
+        return FavoriteProductSerializer(
+            favorite_item, context=self.context, many=True
+        ).data
 
     class Meta:
         model = Customer
-        fields = ['favorites']
+        fields = ["favorites"]
+
+
+# class AddCartItem(serializers.ModelSerializer):
+#     price = serializers.SerializerMethodField(read_only=True)
+
+#     def get_price(self, cartitem: CartItem):
+#         return cartitem.product.price * cartitem.quantity
+
+#     class Meta:
+#         model = CartItem
+#         fields = ["product", "quantity", "price"]
+#         read_only_fields = ["price"]
+
+#     def create(self, validated_data):
+#         return super().create(validated_data)

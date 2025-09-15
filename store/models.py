@@ -80,14 +80,33 @@ class Review(models.Model):
     class Meta:
         # only one review for a customer on the same product
         unique_together = [
-            'customer', 'product'
+            ['customer', 'product'],
         ]
     
     
+
+class Cart(models.Model):
+    id = models.UUIDField(primary_key=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    # customer can be null because cart is created for anonymous users
+    # and after the user is authenticated it will be updated
+    customer = models.OneToOneField(Customer, on_delete=models.CASCADE, null=True, blank=True)
+    
+        
+class CartItem(models.Model):
+    cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='cart_items')
+    product = models.ForeignKey(Product, on_delete=models.PROTECT)
+    quantity = models.PositiveSmallIntegerField(validators=[MinValueValidator(1)])
+    
+    class Meta: 
+        # make sure cart only have one instance from a product 
+        unique_together = [
+            ['cart', 'product']
+        ]
+
+       
     
 
 
 #TODO: 
 # 1) Implement Order, OrderItem models
-# 2) Implement Cart, CartItem models
-# 3) Implement Like as a content_type
