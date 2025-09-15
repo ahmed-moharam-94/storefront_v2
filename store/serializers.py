@@ -268,16 +268,58 @@ class CustomerFavoriteProductSerializer(serializers.ModelSerializer):
         fields = ["favorites"]
 
 
-# class AddCartItem(serializers.ModelSerializer):
-#     price = serializers.SerializerMethodField(read_only=True)
+class CartItemSerializer(serializers.ModelSerializer):
+    price = serializers.SerializerMethodField(read_only=True)
+    cart_id = serializers.SerializerMethodField(read_only=True)
 
-#     def get_price(self, cartitem: CartItem):
-#         return cartitem.product.price * cartitem.quantity
+    def get_price(self, cartitem: CartItem):
+        return cartitem.product.price * cartitem.quantity
+    
+    def get_cart_id(self, cartitem: CartItem):
+        return str(cartitem.cart.id)
 
-#     class Meta:
-#         model = CartItem
-#         fields = ["product", "quantity", "price"]
-#         read_only_fields = ["price"]
+    class Meta:
+        model = CartItem
+        fields = ['cart_id', "product", "quantity", "price"]
+        read_only_fields = ["price"]
 
-#     def create(self, validated_data):
-#         return super().create(validated_data)
+    def create(self, validated_data):
+        request = self.context['request']
+
+        # check if the customer is authenticated or not
+        customer = None
+        if request.user.is_authenticated:
+            customer = Customer.objects.filter(user=request.user).first()
+
+        # check if the user has a cart
+        cart = Cart.objects.filter(customer=customer).first() if customer else None
+
+        if not cart:
+            # if there is no cart then try to get the cart_id from session
+            cart_id = request.session.get('cart_id')
+            if cart_id:
+                try:
+                    cart = Cart.objects.get(pk=cart_id)
+                except Cart.DoesNotExist:
+                    cart = Cart.objects.create(customer=customer)
+                    if not customer:
+                        request.session['cart_id'] = str(cart.id)
+                        request.session.set_expiry(60 * 60 * 24 * 7)
+            else:
+                # no cart create one
+                cart = Cart.objects.create(customer=customer)
+                if not customer:
+                    request.session['cart_id'] = str(cart.id)
+                    request.session.set_expiry(60 * 60 * 24 * 7)
+
+       
+        # check if the cartitem already has the product then update the quantity
+        product = validated_data['product']
+        cart_item = CartItem.objects.filter(cart=cart, product=product).first()
+        if cart_item:
+            cart_item.quantity += validated_data.get('quantity', 1)
+            cart_item.save()
+        else:
+            cart_item = CartItem.objects.create(cart=cart, **validated_data)
+        return cart_item
+

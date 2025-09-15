@@ -6,9 +6,10 @@ from rest_framework import permissions
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.filters import SearchFilter, OrderingFilter
 from core.views import Response
-from .models import Customer, CustomerImage, Product, ProductImage, Review
+from .models import Cart, Customer, CustomerImage, Product, ProductImage, Review, CartItem
 from .permissions import IsOwnerOrAdmin
 from .serializers import (
+    CartItemSerializer,
     CustomerFavoriteProductSerializer,
     CustomerImageSerializer,
     CustomerSerializer,
@@ -17,6 +18,7 @@ from .serializers import (
     ReviewSerializer,
     ToggleFavoriteProductSerializer,
     UpdateCustomerSerializer,
+    CartItemSerializer,
 )
 from .pagination import CustomPagination
 from .filters import ProductFilter
@@ -139,4 +141,30 @@ class CustomerFavoriteViewSet(ViewSet):
         customer = Customer.objects.get(user_id=self.request.user)
         serializer = CustomerFavoriteProductSerializer(customer, context={'request': request})
         return Response(serializer.data)
-       
+    
+    
+class CartItemViewSet(ModelViewSet):
+    serializer_class = CartItemSerializer
+    
+    # define def get_queryset(self) so you can get the queryset 
+    # depending on if the user is authenticated or not
+    def get_queryset(self):
+        request = self.request
+        
+        if request.user.is_authenticated:
+            # get the cart from customer
+            customer = Customer.objects.filter(user=request.user).first()
+            cart = Cart.objects.filter(customer=customer).first()
+        else:
+            # get cart from session
+            cart_id = request.session.get('cart_id')
+            cart = Cart.objects.filter(pk=cart_id).first()
+
+            if cart:
+                return CartItem.objects.filter(cart=cart)
+            else:
+                return CartItem.objects.none()
+            
+            
+    
+           
