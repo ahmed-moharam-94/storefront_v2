@@ -6,6 +6,7 @@ from djoser import utils
 from djoser.views import UserViewSet, TokenCreateView, TokenDestroyView
 
 from core.serializers import CustomSetUsernameSerializer
+from store.signals import user_logged_in_signal
 
 # override the default djoser view to send a custom response
 #  with success message and the new_phone_number field
@@ -31,13 +32,19 @@ class CustomTokenCreateView(TokenCreateView):
     def _action(self, serializer):
         token = utils.login_user(self.request, serializer.user)
         token_serializer_class = settings.SERIALIZERS.token
+
+        # send a signal when user log in
+        user_logged_in_signal.send(
+        sender=serializer.user.__class__,
+        request=self.request,
+        user=serializer.user,
+        )
         return Response(
             data=token_serializer_class(token).data, status=status.HTTP_200_OK
         )
 
+
 # implement delete token view (logout)
-
-
 class CustomTokenDestroyView(TokenDestroyView):
     # we don't need @action because we extend normal ApiView not ViewSet
     def post(self, request):

@@ -179,6 +179,7 @@ class CartItemViewSet(ModelViewSet):
         else:
             # get cart from session
             cart_id = request.session.get("cart_id")
+            print(f'cart_id:: {cart_id}')
             cart = Cart.objects.filter(pk=cart_id).first()
 
         if cart:

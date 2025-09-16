@@ -271,13 +271,15 @@ class CustomerFavoriteProductSerializer(serializers.ModelSerializer):
         fields = ["favorites"]
 
 
+from rest_framework.exceptions import ValidationError
+
 class CartItemSerializer(serializers.ModelSerializer):
     product_price = serializers.SerializerMethodField(read_only=True)
     items_price = serializers.SerializerMethodField(read_only=True)
     cart_id = serializers.SerializerMethodField(read_only=True)
 
     def get_product_price(self, cartitem: CartItem):
-        return cartitem.product.price
+        return cartitem.product.price 
 
     def get_items_price(self, cartitem: CartItem):
         return cartitem.product.price * cartitem.quantity
@@ -316,15 +318,29 @@ class CartItemSerializer(serializers.ModelSerializer):
                     request.session.set_expiry(60 * 60 * 24 * 7)
 
         # check if the cart already has this product
-        product = validated_data["product"]
+        product = validated_data['product']
+        new_quantity = validated_data.get('quantity', 1)
+
         cart_item = CartItem.objects.filter(cart=cart, product=product).first()
-        # TODO:: check the if the quantity is available in inventory
+
         if cart_item:
-            cart_item.quantity += validated_data.get("quantity", 1)
+            # check inventory before increasing
+            if cart_item.quantity + new_quantity > product.inventory:
+                raise ValidationError(
+                    {"detail": f"Only {product.inventory} items available in stock."}
+                )
+            cart_item.quantity += new_quantity
             cart_item.save()
         else:
+            # check inventory before creating
+            if new_quantity > product.inventory:
+                raise ValidationError(
+                    {"detail": f"Only {product.inventory} items available in stock."}
+                )
             cart_item = CartItem.objects.create(cart=cart, **validated_data)
+
         return cart_item
+
 
 
 class CartSerializer(serializers.ModelSerializer):
