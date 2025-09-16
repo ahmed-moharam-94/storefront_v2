@@ -11,6 +11,9 @@ router = DefaultRouter()
 router.register("customers", views.CustomerViewSet, basename="customers")
 router.register("products", views.ProductViewSet, basename="products")
 router.register('favorites', views.CustomerFavoriteViewSet, basename='favorites')
+router.register('carts', views.CartViewSet, basename='cart')
+router.register('cart_items', views.CartItemViewSet, basename='cart-item')
+
 
 
 # Nested Routers #
@@ -22,6 +25,7 @@ customers_nested_router = routers.NestedDefaultRouter(
 products_nested_router = routers.NestedDefaultRouter(
     router, "products", lookup="product"
 )
+
 
 # register the nested paths with (prefix, ViewSet, basename(name-list, name-detail)
 # *basename is required when queryset is not defined in the ViewSet)*

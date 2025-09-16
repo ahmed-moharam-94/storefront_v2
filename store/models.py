@@ -1,3 +1,4 @@
+from uuid import uuid4
 from django.db import models
 from django.conf import settings
 from django.core.validators import MinValueValidator, MaxValueValidator
@@ -86,7 +87,7 @@ class Review(models.Model):
     
 
 class Cart(models.Model):
-    id = models.UUIDField(primary_key=True)
+    id = models.UUIDField(primary_key=True, default=uuid4)
     created_at = models.DateTimeField(auto_now_add=True)
     # customer can be null because cart is created for anonymous users
     # and after the user is authenticated it will be updated

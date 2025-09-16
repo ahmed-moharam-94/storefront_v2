@@ -269,19 +269,24 @@ class CustomerFavoriteProductSerializer(serializers.ModelSerializer):
 
 
 class CartItemSerializer(serializers.ModelSerializer):
-    price = serializers.SerializerMethodField(read_only=True)
+    product_price = serializers.SerializerMethodField(read_only=True)
+    items_price = serializers.SerializerMethodField(read_only=True)
     cart_id = serializers.SerializerMethodField(read_only=True)
+    
 
-    def get_price(self, cartitem: CartItem):
+    def get_product_price(self, cartitem: CartItem):
+        return cartitem.product.price 
+    
+    def get_items_price(self, cartitem: CartItem):
         return cartitem.product.price * cartitem.quantity
     
     def get_cart_id(self, cartitem: CartItem):
-        return str(cartitem.cart.id)
+        return cartitem.cart.id
 
     class Meta:
         model = CartItem
-        fields = ['cart_id', "product", "quantity", "price"]
-        read_only_fields = ["price"]
+        fields = ['cart_id', "product", "quantity", 'product_price', "items_price"]
+        read_only_fields = ['product_price', "items_price"]
 
     def create(self, validated_data):
         request = self.context['request']
@@ -295,27 +300,23 @@ class CartItemSerializer(serializers.ModelSerializer):
         cart = Cart.objects.filter(customer=customer).first() if customer else None
 
         if not cart:
-            # if there is no cart then try to get the cart_id from session
             cart_id = request.session.get('cart_id')
             if cart_id:
                 try:
                     cart = Cart.objects.get(pk=cart_id)
                 except Cart.DoesNotExist:
-                    cart = Cart.objects.create(customer=customer)
-                    if not customer:
-                        request.session['cart_id'] = str(cart.id)
-                        request.session.set_expiry(60 * 60 * 24 * 7)
-            else:
-                # no cart create one
+                    cart = None
+
+            if not cart:
                 cart = Cart.objects.create(customer=customer)
-                if not customer:
+                if not customer:  # only track in session for anon users
                     request.session['cart_id'] = str(cart.id)
                     request.session.set_expiry(60 * 60 * 24 * 7)
 
-       
-        # check if the cartitem already has the product then update the quantity
+        # check if the cart already has this product
         product = validated_data['product']
         cart_item = CartItem.objects.filter(cart=cart, product=product).first()
+        # TODO:: check the if the quantity is available in inventory
         if cart_item:
             cart_item.quantity += validated_data.get('quantity', 1)
             cart_item.save()
@@ -330,9 +331,13 @@ class CartSerializer(serializers.ModelSerializer):
         read_only=True
     )
     
-    # def get_total_price(self, cart: Cart):
-    #     return (item for item in cart.cart_items)
+    def get_total_price(self, cart: Cart):
+        return sum(item.product.price for item in cart.cart_items.all())
+    
     class Meta:
         model = Cart
         fields = ['id', 'items', 'total_price']
         read_only_fields = ['id', 'items', 'total_price']
+        
+        
+        
