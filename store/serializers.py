@@ -1,6 +1,7 @@
 from dataclasses import field
-from django.forms import ImageField
+from django.forms import ImageField, ValidationError
 from django.contrib.contenttypes.models import ContentType
+from django.db import transaction
 from rest_framework import serializers
 
 from core.models import User
@@ -11,6 +12,8 @@ from store.models import (
     Category,
     Customer,
     CustomerImage,
+    Order,
+    OrderItem,
     Product,
     ProductImage,
     Review,
@@ -272,24 +275,23 @@ class CartItemSerializer(serializers.ModelSerializer):
     product_price = serializers.SerializerMethodField(read_only=True)
     items_price = serializers.SerializerMethodField(read_only=True)
     cart_id = serializers.SerializerMethodField(read_only=True)
-    
 
     def get_product_price(self, cartitem: CartItem):
-        return cartitem.product.price 
-    
+        return cartitem.product.price
+
     def get_items_price(self, cartitem: CartItem):
         return cartitem.product.price * cartitem.quantity
-    
+
     def get_cart_id(self, cartitem: CartItem):
         return cartitem.cart.id
 
     class Meta:
         model = CartItem
-        fields = ['cart_id', "product", "quantity", 'product_price', "items_price"]
-        read_only_fields = ['product_price', "items_price"]
+        fields = ["cart_id", "product", "quantity", "product_price", "items_price"]
+        read_only_fields = ["product_price", "items_price"]
 
     def create(self, validated_data):
-        request = self.context['request']
+        request = self.context["request"]
 
         # check if the customer is authenticated or not
         customer = None
@@ -300,7 +302,7 @@ class CartItemSerializer(serializers.ModelSerializer):
         cart = Cart.objects.filter(customer=customer).first() if customer else None
 
         if not cart:
-            cart_id = request.session.get('cart_id')
+            cart_id = request.session.get("cart_id")
             if cart_id:
                 try:
                     cart = Cart.objects.get(pk=cart_id)
@@ -310,15 +312,15 @@ class CartItemSerializer(serializers.ModelSerializer):
             if not cart:
                 cart = Cart.objects.create(customer=customer)
                 if not customer:  # only track in session for anon users
-                    request.session['cart_id'] = str(cart.id)
+                    request.session["cart_id"] = str(cart.id)
                     request.session.set_expiry(60 * 60 * 24 * 7)
 
         # check if the cart already has this product
-        product = validated_data['product']
+        product = validated_data["product"]
         cart_item = CartItem.objects.filter(cart=cart, product=product).first()
         # TODO:: check the if the quantity is available in inventory
         if cart_item:
-            cart_item.quantity += validated_data.get('quantity', 1)
+            cart_item.quantity += validated_data.get("quantity", 1)
             cart_item.save()
         else:
             cart_item = CartItem.objects.create(cart=cart, **validated_data)
@@ -327,17 +329,87 @@ class CartItemSerializer(serializers.ModelSerializer):
 
 class CartSerializer(serializers.ModelSerializer):
     items = CartItemSerializer(many=True, read_only=True)
-    total_price = serializers.SerializerMethodField(
-        read_only=True
-    )
-    
+    total_price = serializers.SerializerMethodField(read_only=True)
+
     def get_total_price(self, cart: Cart):
         return sum(item.product.price for item in cart.cart_items.all())
-    
+
     class Meta:
         model = Cart
-        fields = ['id', 'items', 'total_price']
-        read_only_fields = ['id', 'items', 'total_price']
-        
-        
-        
+        fields = ["id", "items", "total_price"]
+        read_only_fields = ["id", "items", "total_price"]
+
+
+class OrderItemSerializer(serializers.Serializer):
+    product = ProductSerializer(read_only=True)
+
+    class Meta:
+        model = OrderItem
+        fields = [
+            "id",
+            "product",
+            "quantity",
+            "current_price",
+        ]
+        read_only_fields = ["id", "quantity", "current_price"]
+
+
+class OrderSerializer(serializers.ModelSerializer):
+    items = OrderItemSerializer(read_only=True, many=True)
+    total_price = serializers.SerializerMethodField(read_only=True)
+
+    def get_total_price(self, order: Order):
+        return sum(item.price for item in order.items.all())
+
+    class Meta:
+        model = Order
+        fields = ["items", "placed_at", "total_price"]
+        read_only_fields = ["placed_at"]
+
+
+class CreateOrderSerializer(serializers.Serializer):
+
+    def create(self, validated_data):
+        with transaction.atomic():
+            customer = Customer.objects.filter(
+                user=self.context["request"].user
+            ).first()
+            cart = Cart.objects.filter(customer=customer).first()
+            if not customer:
+                raise ValidationError("No customer found for this user")
+
+            if not cart.cart_items.exists():
+                raise ValidationError("Cart is empty")
+
+            # Create the order first
+            order = Order.objects.create(customer=customer)
+
+            # validate cart_items quantity not exceeding product.inventory
+            for cart_item in cart.cart_items.all():
+                if cart_item.quantity > cart_item.product.inventory:
+                    raise ValidationError(
+                        f"Not enough quantity for {cart_item.product.title}, "
+                        f"only {cart_item.product.inventory} available"
+                    )
+
+            # bulk order_items
+            order_items = [
+                OrderItem(
+                    order=order,
+                    product=cart_item.product,
+                    quantity=cart_item.quantity,
+                    price=cart_item.product.price,
+                )
+                for cart_item in cart.cart_items.all()
+            ]
+            OrderItem.objects.bulk_create(order_items)
+
+            # decrease products quantity
+            for cart_item in cart.cart_items.all():
+                cart_item.product.inventory -= cart_item.quantity
+                cart_item.product.save()
+
+            # deleting the cart will also deleted it's related cart_items
+            cart.delete()
+
+            return order

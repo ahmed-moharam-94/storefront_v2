@@ -1,4 +1,5 @@
 from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import status
 from rest_framework.decorators import action, permission_classes
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet, ViewSet
@@ -10,6 +11,7 @@ from .models import (
     Cart,
     Customer,
     CustomerImage,
+    Order,
     Product,
     ProductImage,
     Review,
@@ -28,6 +30,7 @@ from .serializers import (
     ToggleFavoriteProductSerializer,
     UpdateCustomerSerializer,
     CartItemSerializer,
+    CreateOrderSerializer,
 )
 from .pagination import CustomPagination
 from .filters import ProductFilter
@@ -156,11 +159,11 @@ class CustomerFavoriteViewSet(ViewSet):
 
 class CartItemViewSet(ModelViewSet):
     serializer_class = CartItemSerializer
-    
+
     def get_permissions(self):
         # Everyone can create/list their cart items
-        if self.action in ['create', 'list']:
-            return [AllowAny()]  
+        if self.action in ["create", "list"]:
+            return [AllowAny()]
         # Updates/deletes require ownership check
         return [IsCartItemOwnerOrAdmin()]
 
@@ -177,12 +180,11 @@ class CartItemViewSet(ModelViewSet):
             # get cart from session
             cart_id = request.session.get("cart_id")
             cart = Cart.objects.filter(pk=cart_id).first()
-            
-            
+
         if cart:
-                return CartItem.objects.select_related('product').filter(cart=cart)
+            return CartItem.objects.select_related("product").filter(cart=cart)
         else:
-                return CartItem.objects.none()
+            return CartItem.objects.none()
 
 
 class CartViewSet(ModelViewSet):
@@ -193,3 +195,8 @@ class CartViewSet(ModelViewSet):
         if self.action in ["list", "destroy"]:
             return [IsAdminUser()]
         return [IsOwnerOrAdmin()]
+
+class OrderViewSet(ModelViewSet):
+    queryset = Order.objects.all()
+    
+    

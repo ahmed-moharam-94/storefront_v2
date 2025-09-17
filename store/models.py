@@ -131,7 +131,3 @@ class OrderItem(models.Model):
         validators=[MinValueValidator(1), MaxValueValidator(999999)],
     )
 
-
-
-# TODO:
-# 1) Implement Order, OrderItem models
