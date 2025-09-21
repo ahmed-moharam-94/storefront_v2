@@ -1,3 +1,4 @@
+import re
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status
 from rest_framework.decorators import action, permission_classes
@@ -38,7 +39,8 @@ from .filters import ProductFilter
 
 
 class CustomerViewSet(ModelViewSet):
-    queryset = Customer.objects.select_related("user").prefetch_related("image").all()
+    queryset = Customer.objects.select_related(
+        "user").prefetch_related("image").all()
     serializer_class = CustomerSerializer
     permission_classes = [IsAuthenticated]
 
@@ -70,7 +72,8 @@ class CustomerImageViewSet(ModelViewSet):
 class ProductViewSet(ModelViewSet):
     serializer_class = ProductSerializer
     queryset = (
-        Product.objects.prefetch_related("images").select_related("category").all()
+        Product.objects.prefetch_related(
+            "images").select_related("category").all()
     )
     pagination_class = CustomPagination
     # define ways to shortlist queryset: Filter, Search
@@ -197,23 +200,42 @@ class CartViewSet(ModelViewSet):
             return [IsAdminUser()]
         return [IsOwnerOrAdmin()]
 
+
 class OrderViewSet(ModelViewSet):
-    queryset = Order.objects.all()
+    queryset = Order.objects.prefetch_related(
+        'items__product').prefetch_related('items__product__image').all()
     serializer_class = OrderSerializer
-    
+    pagination_class = CustomPagination
+
     def get_permissions(self):
-        if self.action == 'create_order':
+        if self.request.method == 'OPTIONS':
+            return [permissions.AllowAny()]
+        elif self.action in ['create_order', 'options']:
             return [IsAuthenticated()]
+        elif self.action == 'list':
+            return [IsOwnerOrAdmin()]
         return [IsAdminUser()]
     
-    @action(detail=False, methods=['post'], serializer_class=CreateOrderSerializer)
+
+    def get_queryset(self):
+        # check if the user is admin then get all orders
+        if self.request.user.is_staff:
+            return Order.objects.select_related('customer').prefetch_related('items__product').all()
+
+        # if the user is not admin only get his orders
+        customer_id = Customer.objects.only(
+            'id').get(user_id=self.request.user.id)
+
+        return Order.objects.prefetch_related('items__product').filter(customer_id=customer_id).all()
+
+    @action(detail=False, methods=['post'], serializer_class=CreateOrderSerializer, url_path='create-order')
     def create_order(self, request, *args, **kwargs):
+        # input serializer
         serializer = self.get_serializer(
-            data=request.data,
             context={
-            'request': request,
-        })
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data)
-        
+                'request': request,
+            })
+        order = serializer.save()
+        # output serializer
+        order_serializer = OrderSerializer(order, context={'request': request})
+        return Response(order_serializer.data, status=status.HTTP_201_CREATED)

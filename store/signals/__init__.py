@@ -4,3 +4,4 @@ from django.dispatch import Signal
 
 # create a signal instance 
 user_logged_in_signal = Signal()
+order_created_signal = Signal()

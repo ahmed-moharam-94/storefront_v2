@@ -5,7 +5,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 
 from store.models import Cart, Customer
-from store.signals import user_logged_in_signal
+from store.signals import user_logged_in_signal, order_created_signal
 
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def create_customer_for_new_not_admin_user(sender, **kwargs):
@@ -48,8 +48,9 @@ def attach_or_merge_cart_to_logged_in_user_if_available(sender, request, user, *
     if 'cart_id' in request.session:
         del request.session['cart_id']
 
-
-
+@receiver(order_created_signal)
+def order_create(sender, request, user, order, **kwargs):
+    print(f'Order {order.id} is created by user {user.id}')
 
             
                

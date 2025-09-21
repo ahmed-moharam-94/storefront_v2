@@ -18,6 +18,7 @@ from store.models import (
     ProductImage,
     Review,
 )
+from store.signals.handlers import order_created_signal
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -356,7 +357,7 @@ class CartSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "items", "total_price"]
 
 
-class OrderItemSerializer(serializers.Serializer):
+class OrderItemSerializer(serializers.ModelSerializer):
     product = ProductSerializer(read_only=True)
 
     class Meta:
@@ -375,17 +376,16 @@ class OrderSerializer(serializers.ModelSerializer):
     total_price = serializers.SerializerMethodField(read_only=True)
 
     def get_total_price(self, order: Order):
-        return sum(item.price for item in order.items.all())
+        return sum(item.current_price * item.quantity for item in order.items.all())
 
     class Meta:
         model = Order
-        fields = ["items", "placed_at", "total_price"]
-        read_only_fields = ["placed_at"]
+        fields = ['id', "items", "placed_at", "total_price"]
+        read_only_fields = ['id', "placed_at"]
 
 
 class CreateOrderSerializer(serializers.Serializer):
-
-    def create(self, validated_data):
+    def save(self, **kwargs):
         with transaction.atomic():
             customer = Customer.objects.filter(
                 user=self.context["request"].user
@@ -393,6 +393,9 @@ class CreateOrderSerializer(serializers.Serializer):
             cart = Cart.objects.filter(customer=customer).first()
             if not customer:
                 raise ValidationError("No customer found for this user")
+            
+            if not cart:
+                raise ValidationError('No cart for this user')
 
             if not cart.cart_items.exists():
                 raise ValidationError("Cart is empty")
@@ -414,7 +417,7 @@ class CreateOrderSerializer(serializers.Serializer):
                     order=order,
                     product=cart_item.product,
                     quantity=cart_item.quantity,
-                    price=cart_item.product.price,
+                    current_price=cart_item.product.price,
                 )
                 for cart_item in cart.cart_items.all()
             ]
@@ -427,5 +430,14 @@ class CreateOrderSerializer(serializers.Serializer):
 
             # deleting the cart will also deleted it's related cart_items
             cart.delete()
+            
+            order_created_signal.send(
+            self.__class__,
+            request=self.context["request"],
+            user=self.context["request"].user,
+            order=order
+            )
+
+
 
             return order
