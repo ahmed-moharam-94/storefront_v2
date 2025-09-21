@@ -10,10 +10,10 @@ from store import views
 router = DefaultRouter()
 router.register("customers", views.CustomerViewSet, basename="customers")
 router.register("products", views.ProductViewSet, basename="products")
-router.register('favorites', views.CustomerFavoriteViewSet, basename='favorites')
-router.register('carts', views.CartViewSet, basename='cart')
-router.register('cart_items', views.CartItemViewSet, basename='cart-item')
-
+router.register("favorites", views.CustomerFavoriteViewSet, basename="favorites")
+router.register("carts", views.CartViewSet, basename="cart")
+router.register("cart_items", views.CartItemViewSet, basename="cart-item")
+router.register("orders", views.OrderViewSet, basename="orders")
 
 
 # Nested Routers #
@@ -35,7 +35,9 @@ customers_nested_router.register(
 products_nested_router.register(
     "images", views.ProductImageViewSet, basename="product-images"
 )
-products_nested_router.register('reviews', views.ReviewViewSet, basename='product-review')
+products_nested_router.register(
+    "reviews", views.ReviewViewSet, basename="product-review"
+)
 
 urlpatterns = [
     path("", include(router.urls)),

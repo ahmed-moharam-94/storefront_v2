@@ -24,6 +24,7 @@ from .serializers import (
     CustomerFavoriteProductSerializer,
     CustomerImageSerializer,
     CustomerSerializer,
+    OrderSerializer,
     ProductImageSerializer,
     ProductSerializer,
     ReviewSerializer,
@@ -91,7 +92,6 @@ class ProductViewSet(ModelViewSet):
         detail=True, methods=["post"], serializer_class=ToggleFavoriteProductSerializer
     )
     def favorite(self, request, *args, **kwargs):
-        print(self.request.user, self.request.user.is_authenticated)
         product = self.get_object()
         serializer = self.get_serializer(
             context={"request": request, "product": product}
@@ -200,6 +200,20 @@ class CartViewSet(ModelViewSet):
 class OrderViewSet(ModelViewSet):
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
-
     
+    def get_permissions(self):
+        if self.action == 'create_order':
+            return [IsAuthenticated()]
+        return [IsAdminUser()]
     
+    @action(detail=False, methods=['post'], serializer_class=CreateOrderSerializer)
+    def create_order(self, request, *args, **kwargs):
+        serializer = self.get_serializer(
+            data=request.data,
+            context={
+            'request': request,
+        })
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+        
