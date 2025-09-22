@@ -240,4 +240,3 @@ class OrderViewSet(ModelViewSet):
         order_serializer = OrderSerializer(order, context={'request': request})
         return Response(order_serializer.data, status=status.HTTP_201_CREATED)
 
-#TODO: add customer in order serializer and eager loading
