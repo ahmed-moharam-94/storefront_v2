@@ -1,5 +1,8 @@
-import re
+from django.db import connection
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework_extensions.cache.mixins import CacheResponseMixin
 from rest_framework import status
 from rest_framework.decorators import action, permission_classes
 from rest_framework.views import APIView
@@ -36,6 +39,8 @@ from .serializers import (
 )
 from .pagination import CustomPagination
 from .filters import ProductFilter
+from django.core.cache import cache
+
 
 
 class CustomerViewSet(ModelViewSet):
@@ -69,7 +74,7 @@ class CustomerImageViewSet(ModelViewSet):
         return CustomerImage.objects.filter(customer_id=self.kwargs["customer_pk"])
 
 
-class ProductViewSet(ModelViewSet):
+class ProductViewSet(CacheResponseMixin, ModelViewSet):
     serializer_class = ProductSerializer
     queryset = (
         Product.objects.prefetch_related(
@@ -83,12 +88,31 @@ class ProductViewSet(ModelViewSet):
     search_fields = ["title", "description", "category__title"]
     ordering_fields = ["title", "price"]
 
+    cache_response_timeout = 60 * 15  # 15 minutes
+
+    def get_cache_response_timeout(self, view_instance, view_method):
+        if view_method == 'list':
+            return 60 * 5    # 5 minutes
+        elif view_method == 'retrieve':
+            return 60 * 60   # 1 hour
+        elif view_method == 'favorite':
+            return 0         # disable caching
+        return self.cache_response_timeout
+
+
     def get_permissions(self):
         if self.action in ["create", "update", "partial_update", "destroy"]:
             return [IsAdminUser()]
         elif self.action == "favorite":
             return [IsAuthenticated()]
         return [permissions.AllowAny()]
+    
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        print("SQL queries executed:", len(connection.queries))  
+        for q in connection.queries:
+            print(q["sql"])
+        return response
 
     # set detail=True because it will get the product_id /products/{pk}/favorite
     @action(
@@ -107,6 +131,7 @@ class ProductViewSet(ModelViewSet):
             else f"Added '{product.title}' to favorites."
         )
         return Response({"message": message})
+
 
 
 class ProductImageViewSet(ModelViewSet):
@@ -240,3 +265,10 @@ class OrderViewSet(ModelViewSet):
         order_serializer = OrderSerializer(order, context={'request': request})
         return Response(order_serializer.data, status=status.HTTP_201_CREATED)
 
+
+
+def test_redis():
+    cache.set('test_key', 'test_value', 60)
+    value = cache.get('test_key')
+    print(f"Cache test: {value}")
+    return value
