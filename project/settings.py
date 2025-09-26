@@ -175,7 +175,7 @@ CACHES = {
 }
 
 REST_FRAMEWORK_EXTENSIONS = {
-    'DEFAULT_CACHE_RESPONSE_TIMEOUT': 60 * 5  
+    'DEFAULT_CACHE_RESPONSE_TIMEOUT': 60 * 5
 }
 
 
@@ -200,12 +200,18 @@ CELERY_BROKER_URL = 'redis://localhost:6379/2'
 
 CELERY_BEAT_SCHEDULE = {
     # method_name in tasks.py
-    'generate_orders_report': {
+    'update_products_prices': {
         # path of the task
-        'task': 'store.tasks.generate_orders_report',
-        # set the schedule
-        'schedule': 15,
-        'args': ('Test Message',),
-    }
-}
+        'task': 'store.tasks.update_products_prices',
+        # set the schedule to run on Saturday at 12:00 AM
+        'schedule': crontab(minute=0, hour=0, day_of_week='saturday'),
+        # 'args': ('Test Message',),
+    },
 
+    # method_name in tasks.py
+    'delete_empty_carts': {
+        'task': 'store.tasks.delete_empty_carts',
+        # run the task every 3 months
+        'schedule': crontab(minute=0, hour=0, day_of_month=1, month_of_year='1,4,7,10'),
+    },
+}
