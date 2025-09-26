@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 import os
 from pathlib import Path
+from celery.schedules import crontab
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -128,7 +129,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
@@ -162,6 +163,7 @@ DJOSER = {
     'LOGIN_FIELD': 'phone_number'
 }
 
+# use redis database 1 for background tasks
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
@@ -192,3 +194,18 @@ LOGGING = {
         },
     },
 }
+
+# use redis database 2 for background tasks
+CELERY_BROKER_URL = 'redis://localhost:6379/2'
+
+CELERY_BEAT_SCHEDULE = {
+    # method_name in tasks.py
+    'generate_orders_report': {
+        # path of the task
+        'task': 'store.tasks.generate_orders_report',
+        # set the schedule
+        'schedule': 15,
+        'args': ('Test Message',),
+    }
+}
+
