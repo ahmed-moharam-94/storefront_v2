@@ -13,22 +13,28 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 import os
 from pathlib import Path
 from celery.schedules import crontab
+import environ
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+# Initialize env reader
+env = environ.Env(
+    DEBUG=(bool, False)  # set default
+)
+
+# Read .env file (only if exists)
+environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
+
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-67i)6r44ujk@s7e)ze*#d_22+tpj=)l!yng&v9n5i03tgx+v)$'
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-ALLOWED_HOSTS = []
+SECRET_KEY = env("SECRET_KEY", default="changeme-in-prod")
+DEBUG = env("DEBUG")
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
 
 
 # Application definition
@@ -56,6 +62,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -88,9 +95,9 @@ WSGI_APPLICATION = 'project.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+    "default": {
+        "ENGINE": env("DB_ENGINE", default="django.db.backends.sqlite3"),
+        "NAME": os.path.join(BASE_DIR, env("DB_NAME", default="db.sqlite3")),
     }
 }
 
@@ -130,6 +137,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
@@ -167,12 +176,31 @@ DJOSER = {
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://127.0.0.1:6379/1",
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-        }
+        "LOCATION": env("REDIS_CACHE_URL", default="redis://redis:6379/1"),
+        "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
     }
 }
+
+CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="redis://redis:6379/2")
+
+CELERY_BEAT_SCHEDULE = {
+    # method_name in tasks.py
+    'update_products_prices': {
+        # path of the task
+        'task': 'store.tasks.update_products_prices',
+        # set the schedule to run on Saturday at 12:00 AM
+        'schedule': crontab(minute=0, hour=0, day_of_week='saturday'),
+        # 'args': ('Test Message',),
+    },
+
+    # method_name in tasks.py
+    'delete_empty_carts': {
+        'task': 'store.tasks.delete_empty_carts',
+        # run the task every 3 months
+        'schedule': crontab(minute=0, hour=0, day_of_month=1, month_of_year='1,4,7,10'),
+    },
+}
+
 
 REST_FRAMEWORK_EXTENSIONS = {
     'DEFAULT_CACHE_RESPONSE_TIMEOUT': 60 * 5
@@ -192,26 +220,5 @@ LOGGING = {
             'handlers': ['console'],
             'level': 'DEBUG',
         },
-    },
-}
-
-# use redis database 2 for background tasks
-CELERY_BROKER_URL = 'redis://localhost:6379/2'
-
-CELERY_BEAT_SCHEDULE = {
-    # method_name in tasks.py
-    'update_products_prices': {
-        # path of the task
-        'task': 'store.tasks.update_products_prices',
-        # set the schedule to run on Saturday at 12:00 AM
-        'schedule': crontab(minute=0, hour=0, day_of_week='saturday'),
-        # 'args': ('Test Message',),
-    },
-
-    # method_name in tasks.py
-    'delete_empty_carts': {
-        'task': 'store.tasks.delete_empty_carts',
-        # run the task every 3 months
-        'schedule': crontab(minute=0, hour=0, day_of_month=1, month_of_year='1,4,7,10'),
     },
 }

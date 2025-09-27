@@ -13,6 +13,7 @@ click-repl==0.3.0
 cryptography==45.0.7
 defusedxml==0.7.1
 Django==5.2.6
+django-environ==0.12.0
 django-extensions==4.1
 django-filter==25.1
 django-freeze==0.12.0
@@ -51,4 +52,5 @@ tzdata==2025.2
 urllib3==2.5.0
 vine==5.1.0
 wcwidth==0.2.14
+whitenoise==6.11.0
 xmltodict==0.14.2
