@@ -1,6 +1,6 @@
 # Storefront_v2 (Django – Advanced Variation)
 
-Developed an alternative version of storefront with more advanced features:
+Developed an alternative version of [storefront](https://github.com/ahmed-moharam-94/storefront) with more advanced features:
 
 ## Cart System
 - Implemented session-based carts for anonymous users.  
