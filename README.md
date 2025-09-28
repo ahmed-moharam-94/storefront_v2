@@ -1,47 +1,24 @@
-# 🛍️ Storefront (Django – Advanced Variation)
+# Storefront_v2 (Django – Advanced Variation) | GitHub  
+**9/2025 – now**
 
-**Duration:** Jun 2025 – Sep 2025  
-**Repository:** [GitHub](#)  
+Developed an alternative version of the e-commerce app with different architecture & advanced features:
 
-An alternative version of the Storefront e-commerce application with a different architecture and advanced features.  
+## Cart System
+- Implemented session-based carts for anonymous users.  
+- Used Django signals to automatically merge session carts with user carts upon login.  
 
----
+## Authentication
+- Built custom authentication using phone number + password instead of username/email.  
+- Added phone number validation using **django-phonenumbers** library.  
 
-## 🚀 Features
+## Caching
+- Integrated **DRF-extensions** response caching with **Redis** for automatic cache invalidation on updates/deletes.  
 
-### 🛒 Cart System
-- Implemented **session-based carts** for anonymous users.  
-- Used **Django signals** to automatically **merge session carts with user carts** upon login.  
+## Favorites
+- Implemented favorites system using Django’s **ContentType** framework, enabling generic relationships (supporting products, categories, or any model).  
 
-### 🔐 Authentication
-- Built **custom authentication** using **phone number + password** instead of username/email.  
-- Added **phone number validation** for secure account creation.  
+## Background Tasks
+- Scheduled automatic deletion of empty carts using **Celery worker & beat**, ensuring database cleanliness.  
 
-### ⚡ Caching
-- Integrated **DRF-extensions response caching** with **Redis**.  
-- Enabled **automatic cache invalidation** on updates/deletes.  
-
-### ⭐ Favorites
-- Implemented a **favorites system** using **Django’s ContentType framework**.  
-- Supported **generic relationships** (e.g., products, categories, or any model).  
-
-### 🔧 Other Enhancements
-- Reused core e-commerce features (**products, orders, admin dashboard**).  
-- Modified data flows for **scalability and flexibility**.  
-
----
-
-## 📦 Tech Stack
-- **Backend:** Django, Django REST Framework  
-- **Authentication:** Custom phone/password system  
-- **Caching:** Redis + DRF-extensions  
-- **Database:** PostgreSQL (or SQLite for dev)  
-- **Utilities:** Django signals, ContentType framework  
-
----
-
-## 📑 Notes
-This variation focuses on **flexibility and extensibility**:  
-- Anonymous users can shop and merge carts later.  
-- Phone number authentication offers a real-world login flow.  
-- Generic favorites system supports multiple models.  
+## Dockerization
+- Containerized the app with **Docker & Docker Compose**, orchestrating Django, Redis, Celery worker, Celery beat & Flower with a single command.  
