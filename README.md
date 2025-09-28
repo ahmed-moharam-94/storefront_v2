@@ -1,7 +1,6 @@
-# Storefront_v2 (Django – Advanced Variation) | GitHub  
-**9/2025 – now**
+# Storefront_v2 (Django – Advanced Variation)
 
-Developed an alternative version of the e-commerce app with different architecture & advanced features:
+Developed an alternative version of storefront with more advanced features:
 
 ## Cart System
 - Implemented session-based carts for anonymous users.  
