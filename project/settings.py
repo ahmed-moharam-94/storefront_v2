@@ -21,9 +21,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 # Initialize env reader
-env = environ.Env(
-    DEBUG=(bool, False)  # set default
-)
+env = environ.Env(DEBUG=(bool, True))  # set default
 
 # Read .env file (only if exists)
 environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
@@ -40,55 +38,54 @@ ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
 # Application definition
 
 INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
     # external-apps:
-    'rest_framework',
-    'rest_framework.authentication',
-    'rest_framework.authtoken',
-    'djoser',
-    'django_extensions',
-    'django_filters',
-
+    "rest_framework",
+    "rest_framework.authentication",
+    "rest_framework.authtoken",
+    "djoser",
+    "django_extensions",
+    "django_filters",
     # my-apps:
-    'core',
-    'store',
-    'favorite',
+    "core",
+    "store",
+    "favorite",
 ]
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
+    "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ROOT_URLCONF = 'project.urls'
+ROOT_URLCONF = "project.urls"
 
 TEMPLATES = [
     {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
             ],
         },
     },
 ]
 
-WSGI_APPLICATION = 'project.wsgi.application'
+WSGI_APPLICATION = "project.wsgi.application"
 
 
 # Database
@@ -96,8 +93,12 @@ WSGI_APPLICATION = 'project.wsgi.application'
 
 DATABASES = {
     "default": {
-        "ENGINE": env("DB_ENGINE", default="django.db.backends.sqlite3"),
-        "NAME": os.path.join(BASE_DIR, env("DB_NAME", default="db.sqlite3")),
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": "store",
+        "USER": "postgres",
+        "PASSWORD": "moharam",
+        "HOST": "localhost",
+        "PORT": "5432",
     }
 }
 
@@ -107,10 +108,10 @@ DATABASES = {
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
     },
     # {
     #     'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
@@ -124,9 +125,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = "UTC"
 
 USE_I18N = True
 
@@ -136,27 +137,26 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = '/static/'
+STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_URL = "/media/"
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
-AUTH_USER_MODEL = 'core.User'
+AUTH_USER_MODEL = "core.User"
 
 REST_FRAMEWORK = {
-    'COERCE_DECIMAL_TO_STRING': False,
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.TokenAuthentication',
-    ]
-
+    "COERCE_DECIMAL_TO_STRING": False,
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.TokenAuthentication",
+    ],
 }
 
 DJOSER = {
@@ -166,59 +166,55 @@ DJOSER = {
         # reset username which is phone_number
         "set_username": "core.serializers.CustomSetUsernameSerializer",
         "token": "core.serializers.CustomTokenSerializer",
-
     },
-    'USER_CREATE_PASSWORD_RETYPE': True,
-    'LOGIN_FIELD': 'phone_number'
+    "USER_CREATE_PASSWORD_RETYPE": True,
+    "LOGIN_FIELD": "phone_number",
 }
 
 # use redis database 1 for background tasks
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": env("REDIS_CACHE_URL", default="redis://redis:6379/1"),
+        "LOCATION": env("REDIS_CACHE_URL", default="redis://localhost:6379/1"),
         "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
     }
 }
 
-CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="redis://redis:6379/2")
+CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="redis://localhost:6379/2")
 
 CELERY_BEAT_SCHEDULE = {
     # method_name in tasks.py
-    'update_products_prices': {
+    "update_products_prices": {
         # path of the task
-        'task': 'store.tasks.update_products_prices',
+        "task": "store.tasks.update_products_prices",
         # set the schedule to run on Saturday at 12:00 AM
-        'schedule': crontab(minute=0, hour=0, day_of_week='saturday'),
+        "schedule": crontab(minute=0, hour=0, day_of_week="saturday"),
         # 'args': ('Test Message',),
     },
-
     # method_name in tasks.py
-    'delete_empty_carts': {
-        'task': 'store.tasks.delete_empty_carts',
+    "delete_empty_carts": {
+        "task": "store.tasks.delete_empty_carts",
         # run the task every 3 months
-        'schedule': crontab(minute=0, hour=0, day_of_month=1, month_of_year='1,4,7,10'),
+        "schedule": crontab(minute=0, hour=0, day_of_month=1, month_of_year="1,4,7,10"),
     },
 }
 
 
-REST_FRAMEWORK_EXTENSIONS = {
-    'DEFAULT_CACHE_RESPONSE_TIMEOUT': 60 * 5
-}
+REST_FRAMEWORK_EXTENSIONS = {"DEFAULT_CACHE_RESPONSE_TIMEOUT": 60 * 5}
 
 
 LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
         },
     },
-    'loggers': {
+    "loggers": {
         __name__: {
-            'handlers': ['console'],
-            'level': 'DEBUG',
+            "handlers": ["console"],
+            "level": "DEBUG",
         },
     },
 }

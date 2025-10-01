@@ -1,7 +1,25 @@
 services:
+  postgres:
+    image: postgres:14
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: store   # your main database name
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7.4
+    container_name: redis_broker
     ports:
       - "6379:6379"
     healthcheck:
@@ -9,20 +27,26 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+
   web:
     build: .
+    container_name: django_web
     command: python manage.py runserver 0.0.0.0:8000
     ports:
       - "8000:8000"
+    volumes:
+      - .:/app
+    env_file:
+      - .env
     depends_on:
+      postgres:
+        condition: service_healthy
       redis:
         condition: service_healthy
 
-
-
-
   celery:
     build: .
+    container_name: celery_worker
     command: celery -A project worker -l info
     volumes:
       - .:/app
@@ -31,9 +55,11 @@ services:
     depends_on:
       - web
       - redis
+      - postgres
 
   celery_beat:
     build: .
+    container_name: celery_beat
     command: celery -A project beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
     volumes:
       - .:/app
@@ -42,17 +68,23 @@ services:
     depends_on:
       - web
       - redis
+      - postgres
 
   flower:
     build: .
+    container_name: flower_monitor
     command: celery -A project flower
     depends_on:
       - web
       - redis
       - celery
+      - postgres
     environment:
       - DEBUG=1
       - CELERY_BROKER=redis://redis:6379/0
       - CELERY_BACKEND=redis://redis:6379/0
     ports:
-      - 5555:5555
+      - "5555:5555"
+
+volumes:
+  postgres_data:

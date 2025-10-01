@@ -23,6 +23,7 @@ djangorestframework_simplejwt==5.5.1
 djoser==2.3.3
 drf-extensions==0.8.0
 drf-nested-routers==0.94.2
+environ==1.0
 flower==2.0.1
 humanize==4.13.0
 idna==3.10
@@ -33,6 +34,7 @@ phonenumbers==9.0.13
 pillow==11.3.0
 prometheus_client==0.23.1
 prompt_toolkit==3.0.52
+psycopg2-binary==2.9.10
 pycparser==2.22
 PyJWT==2.10.1
 python-dateutil==2.9.0.post0
